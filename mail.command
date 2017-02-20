@@ -2,7 +2,9 @@
 # Will replace an email signature with the template provided in the adjacent new.html file
 # Echo's being used for readability
 here="`dirname \"$0\"`"
+root="$(echo "$here" | cut -f1,2,3 -d'/')"
 cd "$here" || exit 1
+
 NEWSIG=$(cat new.html)
 echo "-------------"
 echo "Welcome to Olivier's email signature installer for OSX"
@@ -20,16 +22,18 @@ echo "-------------"
 echo "Checking directories"
 echo "-------------"
 ALTDIR=""
-
 # List of known locations for the apple mail signatures, as of Feb, 2017
 DONE="NO"
-CLOUDDIR="~/Library/Mobile\ Documents/com~apple~mail/data/V4/Signatures/ ~/Library/Mobile\ Documents/com~apple~mail/data/V3/MailData/Signatures/ ~/Library/Mobile\ Documents/com~apple~Mail/Data/MailData/Signatures/ ~/Library/Mobile\ Documents/Mail/Data/MailData/Signatures/"
-LOCALDIR="~/Library/Mail/V4/MailData/Signatures/ ~/Library/Mail/V3/MailData/Signatures/ ~/Library/Mail/V2/MailData/Signatures/"
+declare -a DIRS=("./Library/Mobile Documents/com~apple~mail/data/V4/Signatures/" "./Library/Mobile Documents/com~apple~mail/data/V3/MailData/Signatures/" "./Library/Mobile Documents/com~apple~Mail/Data/MailData/Signatures/" "/Library/Mobile Documents/Mail/Data/MailData/Signatures/")
+declare -a BACKUPDIRS=("./Library/Mail/V4/MailData/Signatures/" "./Library/Mail/V3/MailData/Signatures/" "./Library/Mail/V2/MailData/Signatures/")
 function testDirs {
-  echo $1
-  for TESTDIR in "$1"
+  echo "Beginning function, moving to $root"
+
+  for TESTDIR in "${DIRS[@]}"
     do
-    if [ -d "$TESTDIR" ]; then
+    cd $root
+    echo "Current directory is ${pwd}$TESTDIR"
+    if [[ -d "${TESTDIR}" ]] ; then
       cd "$TESTDIR"
       echo "Moving to $TESTDIR"
 
@@ -53,19 +57,25 @@ function testDirs {
       echo '' >> "ubiquitous_$UNIQUEID.mailsignature"
       echo $NEWSIG >> "ubiquitous_$UNIQUEID.mailsignature"
       DONE="YES"
+    else
+      echo "No directory"
     fi
   done
 }
 echo "Checking cloud directories"
-testDirs $CLOUDDIR
+testDirs
 if [ "$DONE" == "NO" ]; then
-  echo "No cloud directories found, checking local directories."
-  testDirs "LOCALDIR"
+  echo "No directories matched, trying local directories."
+  DIRS="$BACKUPDIRS"
+  testDirs
 fi
-if [ "$DONE" == "NO" ]; then
-  echo "No directories matched, sad times."
+if ["$DONE" == "YES"]; then
+  echo "Woop! It's been installed."
+  echo "Note, you still need to apply the signature in Mail, go into preferences and choose which accounts to use it with."
+  echo "Finally, the signature won't load external images until you compose an email- so it can look like it's empty in preferences."
+else
+  echo "No directories matched, no signature was installed. Sad times."
 fi
-
 echo "-------------"
 echo "All done, feel free to quit."
 echo "-------------"
